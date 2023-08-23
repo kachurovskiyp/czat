@@ -1,3 +1,5 @@
+const socket = io();
+
 const loginForm = document.querySelector('#welcome-form');
 const messagesSection = document.querySelector('#messages-section');
 const messagesList = document.querySelector('#messages-list');
@@ -18,6 +20,23 @@ const login = (evt) => {
 
   loginForm.classList.remove('show');
   messagesSection.classList.add('show');
+  socket.emit('join', (userName));
+  messagesList.innerHTML = '';
+};
+
+const addMessage = (author, content, type = 'normal') => {
+  const message = document.createElement('li');
+  message.classList.add('message');
+  message.classList.add('message--received');
+  if (type === 'cursive') message.classList.add('message--cursive');
+  if (author === userName) message.classList.add('message--self');
+  message.innerHTML = `
+    <h3 class="message__author">${userName === author ? 'You' : author}</h3>
+    <div class="message__content">
+      ${content}
+    </div>
+  `;
+  messagesList.appendChild(message);
 };
 
 const sendMessage = (evt) => {
@@ -29,22 +48,13 @@ const sendMessage = (evt) => {
   }
 
   addMessage(userName, messageContentInput.value);
+  socket.emit('message', { author: userName, content: messageContentInput.value });
   messageContentInput.value = '';
 };
 
-const addMessage = (author, content) => {
-  const message = document.createElement('li');
-  message.classList.add('message');
-  message.classList.add('message--received');
-  if (author === userName) message.classList.add('message--self');
-  message.innerHTML = `
-    <h3 class="message__author">${userName === author ? 'You' : author}</h3>
-    <div class="message__content">
-      ${content}
-    </div>
-  `;
-  messagesList.appendChild(message);
-};
+socket.on('message', ({ author, content }) => addMessage(author, content));
+socket.on('join', (name) => {addMessage('Chat Bot', `${name} has joined the conversation!`, 'cursive')});
+socket.on('left', (name) => {addMessage('Chat Bot', `${name} has left the conversation... :(`, 'cursive')})
 
 loginForm.addEventListener('submit', login);
 addMessageForm.addEventListener('submit', sendMessage);
